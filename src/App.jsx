@@ -207,6 +207,36 @@ function buildHeatmapWeeks(year) {
   return weeks;
 }
 
+function buildMonthHeatmaps(year) {
+  return Array.from({ length: 12 }, (_, monthIndex) => {
+    const firstDay = new Date(year, monthIndex, 1);
+    const lastDay = new Date(year, monthIndex + 1, 0);
+    const weeks = [];
+    let week = Array(firstDay.getDay()).fill(null);
+    let cursor = new Date(firstDay);
+
+    while (cursor <= lastDay) {
+      week.push(toDateKey(cursor));
+
+      if (week.length === 7) {
+        weeks.push(week);
+        week = [];
+      }
+
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    if (week.length) {
+      weeks.push([...week, ...Array(7 - week.length).fill(null)]);
+    }
+
+    return {
+      month: firstDay.toLocaleDateString(undefined, { month: "short" }),
+      weeks,
+    };
+  });
+}
+
 function defaultEntry(dateKey) {
   return {
     date: dateKey,
@@ -372,6 +402,7 @@ function FocusDot({ focus }) {
 }
 
 function Heatmap({ weeks, entries, selectedDate, todayKey, onSelectDate }) {
+  const months = useMemo(() => buildMonthHeatmaps(TRACKING_YEAR), []);
   const monthLabels = weeks.map((week, index) => {
     const firstDate = week.find(Boolean);
     if (!firstDate) return "";
@@ -382,60 +413,99 @@ function Heatmap({ weeks, entries, selectedDate, todayKey, onSelectDate }) {
   });
 
   return (
-    <div
-      style={{
-        "--heat-cell": "clamp(5px, calc((100vw - 112px) / 53), 16px)",
-        "--heat-gap": "clamp(2px, 0.55vw, 4px)",
-      }}
-    >
-      <div className="mb-3 grid grid-cols-[34px_1fr] gap-2 text-[10px] text-slate-600 sm:text-xs">
-        <div />
-        <div className="flex gap-[var(--heat-gap)]">
-          {monthLabels.map((label, index) => (
-            <div key={`${label}-${index}`} className="shrink-0 overflow-visible" style={{ width: "var(--heat-cell)" }}>
-              {label}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="grid grid-cols-[34px_minmax(0,1fr)] gap-2">
-        <div className="grid grid-rows-7 gap-[var(--heat-gap)] text-xs text-slate-500">
-          <span />
-          <span>Mon</span>
-          <span />
-          <span>Wed</span>
-          <span />
-          <span>Fri</span>
-          <span />
-        </div>
-        <div className="min-w-0 pb-2">
-          <div className="flex max-w-full gap-[var(--heat-gap)]">
-            {weeks.map((week, weekIndex) => (
-              <div key={weekIndex} className="grid grid-rows-7 gap-[var(--heat-gap)]">
-                {week.map((dateKey, dayIndex) => {
-                  const entry = dateKey ? entries[dateKey] : null;
-                  const isSelected = dateKey === selectedDate;
-                  const isToday = dateKey === todayKey;
+    <div>
+      <div className="grid grid-cols-2 gap-4 sm:hidden">
+        {months.map((month) => (
+          <div key={month.month} className="min-w-0">
+            <div className="mb-2 text-xs font-medium text-slate-700">{month.month}</div>
+            <div className="flex gap-1">
+              {month.weeks.map((week, weekIndex) => (
+                <div key={weekIndex} className="grid grid-rows-7 gap-1">
+                  {week.map((dateKey, dayIndex) => {
+                    const entry = dateKey ? entries[dateKey] : null;
+                    const isSelected = dateKey === selectedDate;
+                    const isToday = dateKey === todayKey;
 
-                  return (
-                    <button
-                      key={dateKey || `${weekIndex}-${dayIndex}`}
-                      type="button"
-                      disabled={!dateKey}
-                      aria-label={dateKey ? `${formatDate(dateKey)}${entry?.actionDay ? ", action day" : ""}` : "Empty day"}
-                      title={dateKey ? `${formatDate(dateKey)}${entry?.notes ? ` - ${entry.notes}` : ""}` : ""}
-                      onClick={() => dateKey && onSelectDate(dateKey)}
-                      className={[
-                        "rounded-[3px] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
-                        isSelected ? "border-slate-950 ring-2 ring-slate-950 ring-offset-1" : "border-transparent",
-                        isToday && !isSelected ? "ring-1 ring-slate-500 ring-offset-1" : "",
-                      ].join(" ")}
-                      style={{ width: "var(--heat-cell)", height: "var(--heat-cell)", backgroundColor: getHeatColor(entry, !dateKey) }}
-                    />
-                  );
-                })}
+                    return (
+                      <button
+                        key={dateKey || `${month.month}-${weekIndex}-${dayIndex}`}
+                        type="button"
+                        disabled={!dateKey}
+                        aria-label={dateKey ? `${formatDate(dateKey)}${entry?.actionDay ? ", action day" : ""}` : "Empty day"}
+                        title={dateKey ? `${formatDate(dateKey)}${entry?.notes ? ` - ${entry.notes}` : ""}` : ""}
+                        onClick={() => dateKey && onSelectDate(dateKey)}
+                        className={[
+                          "h-3 w-3 rounded-[3px] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
+                          isSelected ? "border-slate-950 ring-2 ring-slate-950 ring-offset-1" : "border-transparent",
+                          isToday && !isSelected ? "ring-1 ring-slate-500 ring-offset-1" : "",
+                        ].join(" ")}
+                        style={{ backgroundColor: getHeatColor(entry, !dateKey) }}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="hidden sm:block"
+        style={{
+          "--heat-cell": "clamp(8px, calc((100vw - 176px) / 53), 16px)",
+          "--heat-gap": "clamp(2px, 0.35vw, 4px)",
+        }}
+      >
+        <div className="mb-3 grid grid-cols-[34px_1fr] gap-2 text-xs text-slate-600">
+          <div />
+          <div className="flex gap-[var(--heat-gap)]">
+            {monthLabels.map((label, index) => (
+              <div key={`${label}-${index}`} className="shrink-0 overflow-visible" style={{ width: "var(--heat-cell)" }}>
+                {label}
               </div>
             ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-[34px_minmax(0,1fr)] gap-2">
+          <div className="grid grid-rows-7 gap-[var(--heat-gap)] text-xs text-slate-500">
+            <span />
+            <span>Mon</span>
+            <span />
+            <span>Wed</span>
+            <span />
+            <span>Fri</span>
+            <span />
+          </div>
+          <div className="min-w-0 pb-2">
+            <div className="flex max-w-full gap-[var(--heat-gap)]">
+              {weeks.map((week, weekIndex) => (
+                <div key={weekIndex} className="grid grid-rows-7 gap-[var(--heat-gap)]">
+                  {week.map((dateKey, dayIndex) => {
+                    const entry = dateKey ? entries[dateKey] : null;
+                    const isSelected = dateKey === selectedDate;
+                    const isToday = dateKey === todayKey;
+
+                    return (
+                      <button
+                        key={dateKey || `${weekIndex}-${dayIndex}`}
+                        type="button"
+                        disabled={!dateKey}
+                        aria-label={dateKey ? `${formatDate(dateKey)}${entry?.actionDay ? ", action day" : ""}` : "Empty day"}
+                        title={dateKey ? `${formatDate(dateKey)}${entry?.notes ? ` - ${entry.notes}` : ""}` : ""}
+                        onClick={() => dateKey && onSelectDate(dateKey)}
+                        className={[
+                          "rounded-[3px] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
+                          isSelected ? "border-slate-950 ring-2 ring-slate-950 ring-offset-1" : "border-transparent",
+                          isToday && !isSelected ? "ring-1 ring-slate-500 ring-offset-1" : "",
+                        ].join(" ")}
+                        style={{ width: "var(--heat-cell)", height: "var(--heat-cell)", backgroundColor: getHeatColor(entry, !dateKey) }}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
