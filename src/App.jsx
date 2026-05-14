@@ -382,19 +382,24 @@ function Heatmap({ weeks, entries, selectedDate, todayKey, onSelectDate }) {
   });
 
   return (
-    <div>
-      <div className="mb-3 grid grid-cols-[34px_1fr] gap-2 text-xs text-slate-600">
+    <div
+      style={{
+        "--heat-cell": "clamp(5px, calc((100vw - 112px) / 53), 16px)",
+        "--heat-gap": "clamp(2px, 0.55vw, 4px)",
+      }}
+    >
+      <div className="mb-3 grid grid-cols-[34px_1fr] gap-2 text-[10px] text-slate-600 sm:text-xs">
         <div />
-        <div className="flex gap-1">
+        <div className="flex gap-[var(--heat-gap)]">
           {monthLabels.map((label, index) => (
-            <div key={`${label}-${index}`} className="w-4 shrink-0">
+            <div key={`${label}-${index}`} className="shrink-0 overflow-visible" style={{ width: "var(--heat-cell)" }}>
               {label}
             </div>
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-[34px_1fr] gap-2">
-        <div className="grid grid-rows-7 gap-1 text-xs text-slate-500">
+      <div className="grid grid-cols-[34px_minmax(0,1fr)] gap-2">
+        <div className="grid grid-rows-7 gap-[var(--heat-gap)] text-xs text-slate-500">
           <span />
           <span>Mon</span>
           <span />
@@ -403,10 +408,10 @@ function Heatmap({ weeks, entries, selectedDate, todayKey, onSelectDate }) {
           <span>Fri</span>
           <span />
         </div>
-        <div className="overflow-x-auto pb-2">
-          <div className="flex min-w-max gap-1">
+        <div className="min-w-0 pb-2">
+          <div className="flex max-w-full gap-[var(--heat-gap)]">
             {weeks.map((week, weekIndex) => (
-              <div key={weekIndex} className="grid grid-rows-7 gap-1">
+              <div key={weekIndex} className="grid grid-rows-7 gap-[var(--heat-gap)]">
                 {week.map((dateKey, dayIndex) => {
                   const entry = dateKey ? entries[dateKey] : null;
                   const isSelected = dateKey === selectedDate;
@@ -421,11 +426,11 @@ function Heatmap({ weeks, entries, selectedDate, todayKey, onSelectDate }) {
                       title={dateKey ? `${formatDate(dateKey)}${entry?.notes ? ` - ${entry.notes}` : ""}` : ""}
                       onClick={() => dateKey && onSelectDate(dateKey)}
                       className={[
-                        "h-4 w-4 rounded-[3px] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
+                        "rounded-[3px] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
                         isSelected ? "border-slate-950 ring-2 ring-slate-950 ring-offset-1" : "border-transparent",
                         isToday && !isSelected ? "ring-1 ring-slate-500 ring-offset-1" : "",
                       ].join(" ")}
-                      style={{ backgroundColor: getHeatColor(entry, !dateKey) }}
+                      style={{ width: "var(--heat-cell)", height: "var(--heat-cell)", backgroundColor: getHeatColor(entry, !dateKey) }}
                     />
                   );
                 })}
@@ -808,8 +813,8 @@ function ReferenceTreeNode({ node, expanded, onToggle, progress, sprintStartDate
 
   return (
     <div className="relative">
-      {depth > 0 && <div className="absolute left-0 top-4 h-px w-4 bg-slate-300" />}
-      <div className={depth > 0 ? "pl-5" : ""}>
+      {depth > 0 && <div className="absolute left-0 top-4 h-px w-3 bg-slate-300 sm:w-4" />}
+      <div className={depth > 0 ? "pl-3 sm:pl-5" : ""}>
         <div className="group flex min-h-8 items-start gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50">
           {hasChildren ? (
             <button
@@ -825,7 +830,7 @@ function ReferenceTreeNode({ node, expanded, onToggle, progress, sprintStartDate
           )}
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={node.type === "root" ? "font-semibold text-slate-950" : "text-sm font-medium text-slate-800"}>
+              <span className={node.type === "root" ? "break-words font-semibold text-slate-950" : "break-words text-sm font-medium text-slate-800"}>
                 {node.title}
               </span>
               <TreeTypeBadge type={node.type} />
@@ -846,7 +851,7 @@ function ReferenceTreeNode({ node, expanded, onToggle, progress, sprintStartDate
           </div>
         </div>
         {hasChildren && isOpen && (
-          <div className="ml-4 border-l border-slate-300 pl-3">
+          <div className="ml-2 border-l border-slate-300 pl-2 sm:ml-4 sm:pl-3">
             {node.children.map((child) => (
               <ReferenceTreeNode
                 key={child.id}
@@ -878,8 +883,8 @@ function ReferencePanel({ progress, sprintStartDate }) {
         <h2 className="text-lg font-semibold text-slate-950">OKR Tree Reference</h2>
       </div>
       <Card className="border-slate-200 shadow-sm">
-        <CardContent className="overflow-x-auto p-5">
-          <div className="min-w-[720px] font-mono text-sm">
+        <CardContent className="p-3 sm:p-5">
+          <div className="min-w-0 font-mono text-xs sm:text-sm">
             <ReferenceTreeNode
               node={referenceTree}
               expanded={expanded}
@@ -927,8 +932,8 @@ function OKRProgressSummary({ progress, sprintStartDate, onSprintStartChange }) 
         </label>
         <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[560px] lg:grid-cols-4">
           {okrs.map((okr) => (
-            <div key={okr.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="truncate text-xs font-medium text-slate-700">{okr.title.replace(/^OKR \d: /, "")}</p>
+            <div key={okr.id} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="break-words text-xs font-medium text-slate-700">{okr.title.replace(/^OKR \d: /, "")}</p>
               <div className="mt-1 flex items-center gap-2">
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
                   <div className="h-full rounded-full bg-slate-950" style={{ width: formatPercent(getObjectiveScore(okr, progress)) }} />
@@ -1093,14 +1098,14 @@ export default function OKRTreeApp() {
             isEditorOpen ? "lg:grid-cols-[minmax(0,1fr)_360px]" : "lg:grid-cols-[minmax(0,1fr)]",
           ].join(" ")}
         >
-          <Card className="border-slate-200 shadow-sm">
-            <CardContent className="p-5 md:p-6">
+          <Card className="min-w-0 border-slate-200 shadow-sm">
+            <CardContent className="p-3 sm:p-5 md:p-6">
               <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-950">{TRACKING_YEAR} Heatmap</h2>
                   <p className="mt-1 text-sm text-slate-700">Click any square to mark the day and write notes.</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex min-w-0 flex-wrap gap-2">
                   {focusAreas.map((area) => (
                     <span key={area.id} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700">
                       <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: area.color }} />
